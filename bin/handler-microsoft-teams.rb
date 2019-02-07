@@ -94,7 +94,11 @@ class MicrosoftTeams < Sensu::Handler
 
   def incident_key
     if dashboard_uri.nil?
-      @event['client']['name'] + '/' + @event['check']['name']
+      if @event['v2_event_mapped_into_v1']
+        @event['client']['metadata']['name'] + '/' + @event['check']['metadata']['name']
+      else
+        @event['client']['name'] + '/' + @event['check']['name']
+      end
     else
       "#{dashboard_uri}#{@event['client']['name']}?check=#{@event['check']['name']}"
     end
@@ -106,7 +110,12 @@ class MicrosoftTeams < Sensu::Handler
 
   def handle
     if payload_template.nil?
-      description = @event['check']['notification'] || build_description
+      if @event['v2_event_mapped_into_v1']
+        description = @event['check']['output'] || build_description
+      else
+        description = @event['check']['notification'] || build_description
+      end
+      
       post_data("#{incident_key}: #{description}")
     else
       post_data(render_payload_template(teams_channel))
